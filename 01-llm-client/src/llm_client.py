@@ -7,6 +7,7 @@ from typing import Any, Optional, Type, TypeVar
 from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel, ValidationError
+from openai import APITimeoutError, APIConnectionError, RateLimitError, APIStatusError
 
 try:
     from .token_counter import TokenCounter, TokenUsage
@@ -172,10 +173,16 @@ class LLMClient:
             )
             result = LLMCallResult(text=text, raw_response=response, token_usage=token_usage)
             return result if return_raw else result.text
+        except APITimeoutError as exc:
+            raise LLMTimeoutError(f"LLM request timeout: {exc}") from exc
+        except RateLimitError as exc:
+            raise LLMClientError(f"LLM rate limit exceeded: {exc}") from exc
+        except APIConnectionError as exc:
+            raise LLMClientError(f"LLM connection failed: {exc}") from exc
+        except APIStatusError as exc:
+            raise LLMClientError(f"LLM API status error: {exc}") from exc
         except Exception as exc:
-            if "timeout" in str(exc).lower():
-                raise LLMTimeoutError(f"LLM request timeout: {exc}") from exc
-            raise LLMClientError(f"LLM request failed: {exc}") from exc
+            raise LLMClientError(f"Unexpected LLM request failed: {exc}") from exc
 
     def chat_structured(self, messages: list[dict[str, str]], schema: Type[T], **kwargs: Any) -> T:
         """发送请求并将返回内容解析为指定 Pydantic 模型。"""
