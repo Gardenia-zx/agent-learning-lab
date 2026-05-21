@@ -14,6 +14,7 @@ except ImportError:
     from token_counter import TokenCounter, TokenUsage
 
 
+# 泛型T规定T的类型只能是BaseModel或其子类，确保结构化输出解析的类型安全。
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -151,7 +152,7 @@ class LLMClient:
         参数说明：
         - messages: OpenAI chat 格式消息列表
         - return_raw: 为 True 时返回 LLMCallResult，否则仅返回文本
-        - kwargs: 透传到 chat.completions.create 的额外参数
+        - kwargs: 透传到 chat.completions.create 的额外参数，就是chat函数可以包含其他参数，如 temperature、max_tokens 等
         """
 
         try:
@@ -160,6 +161,7 @@ class LLMClient:
                 messages=messages,
                 **kwargs,
             )
+            # 选取模型返回的第一条文本回复进行处理，兼容多条回复的情况。
             text = response.choices[0].message.content or ""
             usage_obj = getattr(response, "usage", None)
             token_usage = self.token_counter.record(

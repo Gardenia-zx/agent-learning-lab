@@ -66,6 +66,7 @@ class TokenCounter:
         """
 
         if usage_obj is not None:
+            # 模型返回了usage就读取，没有属性默认为第三个参数
             input_tokens = int(getattr(usage_obj, "prompt_tokens", 0))
             output_tokens = int(getattr(usage_obj, "completion_tokens", 0))
             total_tokens = int(
